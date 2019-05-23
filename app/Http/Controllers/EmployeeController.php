@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Company;
 use App\Employee;
-use Illuminate\Http\Request;
+use App\Http\Requests\CreateEmployeeRequest;
+use App\Http\Requests\UpdateEmployeeRequest;
+
 
 class EmployeeController extends Controller
 {
@@ -14,7 +17,8 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-        //
+        $employees = Employee::paginate(10);
+        return view('admin.employees_list', ['employees'=>$employees]);
     }
 
     /**
@@ -24,7 +28,7 @@ class EmployeeController extends Controller
      */
     public function create()
     {
-        //
+        return view('admin.employees_create_form', ['companies'=> Company::all()]);
     }
 
     /**
@@ -33,9 +37,10 @@ class EmployeeController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(CreateEmployeeRequest $request)
     {
-        //
+        Employee::create($request->except( '_token'));
+        return redirect(route('employees.index'));
     }
 
     /**
@@ -44,9 +49,14 @@ class EmployeeController extends Controller
      * @param  \App\Employee  $employee
      * @return \Illuminate\Http\Response
      */
-    public function show(Employee $employee)
+    public function show($id)
     {
-        //
+        if($id){
+            $employees = Employee::where('company_id', $id)->paginate(10);
+        }else{
+            $employees = [];
+        }
+        return view('admin.employees_list', ['employees'=>$employees]);
     }
 
     /**
@@ -55,9 +65,10 @@ class EmployeeController extends Controller
      * @param  \App\Employee  $employee
      * @return \Illuminate\Http\Response
      */
-    public function edit(Employee $employee)
+    public function edit($id)
     {
-        //
+        $employee = Employee::findOrFail($id);
+        return view('admin.employee_edit_form', ['employee'=>$employee, 'companies'=> Company::all()]);
     }
 
     /**
@@ -67,9 +78,12 @@ class EmployeeController extends Controller
      * @param  \App\Employee  $employee
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Employee $employee)
+    public function update(UpdateEmployeeRequest $request, $id)
     {
-        //
+        $employee = Employee::findOrFail($id);
+        $employee->update($request->except('_token'));
+
+        return redirect(route('employees.index'));
     }
 
     /**
@@ -78,8 +92,10 @@ class EmployeeController extends Controller
      * @param  \App\Employee  $employee
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Employee $employee)
+    public function destroy($id)
     {
-        //
+        $employee = Employee::findOrFail($id);
+        $employee->delete();
+        return redirect(route('employees.index'));
     }
 }

@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Company;
-use Illuminate\Http\Request;
+use App\Http\Requests\CreateCompanyRequest;
+use App\Http\Requests\UpdateCompanyRequest;
+use App\Mail\CompanyMail;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class CompanyController extends Controller
 {
@@ -14,7 +18,8 @@ class CompanyController extends Controller
      */
     public function index()
     {
-        //
+        $companies = Company::paginate(10);
+        return view('admin.companies_list', ['companies'=>$companies]);
     }
 
     /**
@@ -24,7 +29,7 @@ class CompanyController extends Controller
      */
     public function create()
     {
-        //
+        return view('admin.company_create_form');
     }
 
     /**
@@ -33,9 +38,21 @@ class CompanyController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(CreateCompanyRequest $request)
     {
-        //
+        $file='';
+        if ($request->hasFile('logo')) {
+            $file = $request->file('logo')->store('public/images');
+            $file = basename($file);
+        }
+
+        Company::create($request->except( '_token', 'logo')+['logo'=>$file]);
+        Mail::send('mail.mail', ['company' => $request->name], function ($m) use ($request) {
+            $m->from('hello@app.com', 'Your Application');
+
+            $m->to($request->email, $request->name)->subject('Your Reminder!');
+        });
+        return redirect(route('companies.index'));
     }
 
     /**
@@ -55,9 +72,11 @@ class CompanyController extends Controller
      * @param  \App\Company  $company
      * @return \Illuminate\Http\Response
      */
-    public function edit(Company $company)
+    public function edit($id)
     {
-        //
+        $company = Company::findOrFail($id);
+
+        return view('admin.company_edit_form', ['company'=>$company]);
     }
 
     /**
@@ -67,9 +86,18 @@ class CompanyController extends Controller
      * @param  \App\Company  $company
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Company $company)
+    public function update(UpdateCompanyRequest $request, $id)
     {
-        //
+
+        $company = Company::findOrfail($id);
+        $file = $company->logo;
+        if ($request->hasFile('logo')) {
+            Storage::delete('public/images/'.$company->logo);
+            $file = $request->file('logo')->store('public/images');
+            $file = basename($file);
+        }
+        $company->update($request->except('_token', 'logo')+['logo'=>$file]);
+        return redirect(route('companies.index'));
     }
 
     /**
@@ -78,8 +106,13 @@ class CompanyController extends Controller
      * @param  \App\Company  $company
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Company $company)
+    public function destroy($id)
     {
-        //
+        $comp = Company::findOrFail($id);
+        if($comp->logo){
+           Storage::delete('public/images/'.$comp->logo);
+        }
+        $comp->delete();
+        return redirect(route('companies.index'));
     }
 }
