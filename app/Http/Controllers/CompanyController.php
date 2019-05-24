@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Company;
+use App\Employee;
 use App\Http\Requests\CreateCompanyRequest;
 use App\Http\Requests\UpdateCompanyRequest;
 use App\Mail\CompanyCreated;
@@ -108,6 +109,11 @@ class CompanyController extends Controller
         $comp = Company::findOrFail($id);
         if($comp->logo){
            Storage::delete('public/images/'.$comp->logo);
+        }
+        if($comp->employees()->count() != null){
+            foreach($comp->employees as $employee){
+                Employee::deleted($employee->id);
+            }
         }
         $comp->delete();
         return redirect(route('companies.index'));
