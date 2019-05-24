@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Company;
 use App\Http\Requests\CreateCompanyRequest;
 use App\Http\Requests\UpdateCompanyRequest;
-use App\Mail\CompanyMail;
+use App\Mail\CompanyCreated;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -47,11 +47,8 @@ class CompanyController extends Controller
         }
 
         Company::create($request->except( '_token', 'logo')+['logo'=>$file]);
-        Mail::send('mail.mail', ['company' => $request->name], function ($m) use ($request) {
-            $m->from('hello@app.com', 'Your Application');
 
-            $m->to($request->email, $request->name)->subject('Your Reminder!');
-        });
+        Mail::to($request->email)->send(new CompanyCreated($request->name));
         return redirect(route('companies.index'));
     }
 
